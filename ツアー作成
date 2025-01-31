@@ -1,0 +1,83 @@
+function makingTour() {
+  try {
+    Logger.log("makingTour 実行開始");
+
+    const sheetId = "1cV_8DH4wLZu7--J9vxIH0rFf7upKa1cKACyDNaONxp0";
+    const ss = SpreadsheetApp.openById(sheetId);
+    const operationSheet = ss.getSheetByName("回収ツアー作成");
+
+    let token = getApiToken();
+    if (!token) {
+      Logger.log("トークンを取得できませんでした。");
+      throw new Error("トークン取得失敗");
+    }
+
+    Logger.log("トークン取得成功: " + token);
+
+    // A列のデータ（commonAreaIds）を取得
+    let commonAreaIds = operationSheet.getRange("A2:A").getValues();
+    Logger.log("commonAreaIdsの取得完了: " + commonAreaIds.length + "件");
+
+    // 明日の日付を取得（yyyy-MM-dd形式）
+    let today = new Date();
+    today.setDate(today.getDate() + 1);  // 明日に設定
+    let cleaningDate = today.toISOString().split('T')[0];  // "yyyy-MM-dd"形式に変換
+
+    Logger.log("明日の日付: " + cleaningDate);
+
+    // 取得したcommonAreaIdsをループ
+    for (let i = 0; i < commonAreaIds.length; i++) {
+      let commonAreaId = commonAreaIds[i][0];  // A列の値を取得
+
+      // commonAreaIdが空の場合はスキップ
+      if (!commonAreaId) {
+        Logger.log("commonAreaIdが空のため、スキップします。 (行 " + (i + 2) + ")");
+        continue;
+      }
+
+      Logger.log("処理中: commonAreaId = " + commonAreaId);
+
+      let note = "ストッカー内・ゴミ庫内の清掃をしてください。水栓が使用できる場合は使用して、ストッカー底面やゴミ庫の床の清掃もお願いします"
+
+      const api_url = 'https://api-cleaning.m2msystems.cloud/v3/cleanings/create_with_placement';
+
+      const payload = {
+        "placement": "commonArea",
+        "commonAreaId": commonAreaId,  // ここでcommonAreaIdを設定
+        "listingId": "",  // listingIdの設定が必要
+        "cleaningDate": cleaningDate,  // 明日の日付を設定
+        "note": note,
+        "cleaners": ["91af72ff-d537-4cec-9cc4-2a7d9f20b954"],
+        "submissionId": "",
+        "photoTourId": "7072da7d-3a3c-4b3d-832c-5c702cfc2219"
+      };
+
+      const options = {
+        'method': 'post',
+        'contentType': 'application/json',
+        'headers': {
+          'Authorization': 'Bearer ' + token
+        },
+        'payload': JSON.stringify(payload),
+        'muteHttpExceptions': true
+      };
+
+      try {
+        let response = UrlFetchApp.fetch(api_url, options);
+        let responseText = response.getContentText();
+
+        // 返答を2列目にセット
+        operationSheet.getRange(i + 2, 2).setValue("成功");  // 成功時に「成功」を設定
+        Logger.log("APIレスポンス: " + responseText);
+      } catch (error) {
+        Logger.log("APIリクエストでエラーが発生しました: " + error.message);
+        operationSheet.getRange(i + 2, 2).setValue("エラー: " + error.message);  // エラー時にエラーメッセージを表示
+      }
+    }
+
+  } catch (e) {
+    Logger.log('エラーが発生しました: ' + e.message);
+  } finally {
+    Logger.log("処理終了");
+  }
+}
