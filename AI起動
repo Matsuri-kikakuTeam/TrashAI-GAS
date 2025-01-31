@@ -1,0 +1,24 @@
+function sendRequestToEndpoint() {
+  // エンドポイントURLを設定
+  var url = "https://us-central1-m2m-core.cloudfunctions.net/Trash_id_AI_processing";  // ここにデプロイしたエンドポイントのURLを入力
+  
+  // 必要に応じてリクエストボディを作成 (POSTの場合)
+  var payload = {
+    // 必要なパラメータを指定
+  };
+  
+  // リクエストオプションを設定
+  var options = {
+    "method" : "post",
+    "contentType" : "application/json",
+    "payload" : JSON.stringify(payload),
+    "timeout" : 360000 // 300秒（5分）に設定
+  };
+  
+  // エンドポイントにリクエストを送信
+  var response = UrlFetchApp.fetch(url, options);
+  
+  // レスポンスをログに出力
+  var jsonResponse = JSON.parse(response.getContentText());
+  
+}
